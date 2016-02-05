@@ -37,6 +37,7 @@ func MMapPal(filename string) (*Pal, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 	mmap, err := syscall.Mmap(int(file.Fd()), 0, int(fi.Size()), syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
 		return nil, err
