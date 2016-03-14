@@ -68,12 +68,12 @@ func (p *Pal) Free() {
 
 func (p *Pal) From(b []byte) error {
 	if len(b) < int(unsafe.Sizeof(PalHeader{})) {
-		return errors.New("can't load pal, seems to be too small")
+		return fmt.Errorf("buffer seems to be too small len=%d", len(b))
 	}
 	h := &PalHeader{}
 	h.Read(b)
 	if !h.Valid() {
-		return errors.New("can't load pal, header invalid")
+		return fmt.Errorf("header invalid. len=%d header_signatur=%x wanted=%x", len(b), h.Magic, 0x19820304)
 	}
 
 	// TODO  - checksum the file or at least check if the size matches
