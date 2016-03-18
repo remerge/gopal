@@ -16,9 +16,9 @@ func TestPal(t *testing.T) {
 	Convey("pal", t, func() {
 
 		data := [][]string{
-			[]string{"123", "test", "somevalue"},
-			[]string{"xfz56", "test2", "somevalue2"},
-			[]string{"00000", "test3", "somevalue3"},
+			{"123", "test", "somevalue"},
+			{"xfz56", "test2", "somevalue2"},
+			{"00000", "test3", "somevalue3"},
 		}
 
 		b := NewBuilder([]string{"id", "name", "value"})

@@ -1,0 +1,8 @@
+hash: 2a59de669a7d8bd4bad7ea6b6a9a1ba210586e3460767d3dd593e2f601336112
+updated: 2016-03-18T10:44:16.380997502+01:00
+imports:
+- name: github.com/alecthomas/mph
+  version: 983a3a72868eb391e42154225ead64f3e83b9b4d
+- name: github.com/alecthomas/unsafeslice
+  version: 763102eafe597ba6cc5c6e847006e3e9851c2786
+devImports: []

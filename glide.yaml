@@ -1,0 +1,3 @@
+package: github.com/remerge/gopal
+import:
+- package: github.com/alecthomas/mph
