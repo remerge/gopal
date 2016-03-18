@@ -97,8 +97,8 @@ func (h *PalHeader) Read(b []byte) error {
 	return binary.Read(bytes.NewBuffer(b), binary.LittleEndian, h)
 }
 
-func (h *PalHeader) WriteTo(w io.Writer) error {
-	return binary.Write(w, binary.LittleEndian, h)
+func (h *PalHeader) WriteTo(w io.Writer) (int64, error) {
+	return 0, binary.Write(w, binary.LittleEndian, h)
 }
 
 func (h *PalHeader) Valid() bool {
