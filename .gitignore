@@ -1,2 +1,5 @@
-pal
+*.test
+.args*
+gopal
+cache/
 vendor/

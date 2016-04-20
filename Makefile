@@ -7,10 +7,23 @@ TOP := $(dir $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
 GOFMT=gofmt -w -s
 
 GOSRCDIR=$(GOPATH)/src/$(PACKAGE)
-GOPATHS=$(shell glide novendor)
+GOPATHS=$(shell glide novendor | grep -v /main/)
 GOFILES=$(shell git ls-files | grep '\.go$$')
 MAINGO=$(wildcard main/*.go)
 MAIN=$(patsubst main/%.go,%,$(MAINGO))
+
+CODE_VERSION=$(TRAVIS_COMMIT)
+ifeq ($(CODE_VERSION),)
+	CODE_VERSION=$(shell git rev-parse --short HEAD)-dev
+endif
+
+CODE_BUILD=$(TRAVIS_REPO_SLUG)\#$(TRAVIS_JOB_NUMBER)
+ifeq ($(CODE_BUILD),\#)
+	CODE_BUILD=$(PACKAGE)\#$(shell whoami)
+endif
+
+LDIMPORT=$(PACKAGE)/vendor/github.com/remerge/rex
+LDFLAGS=-X $(LDIMPORT).CodeVersion=$(CODE_VERSION) -X $(LDIMPORT).CodeBuild=$(CODE_BUILD)@$(shell date -u +%FT%TZ)
 
 .PHONY: build run clean lint test bench fmt dep init up gen release deploy
 
@@ -19,7 +32,10 @@ all: build
 build: fmt
 	cd $(GOSRCDIR) && \
 		CGO_ENABLED=0 \
-		go build $(MAINGO)
+		go build -v -i -ldflags "$(LDFLAGS)" $(MAINGO)
+	cd $(GOSRCDIR) && \
+		CGO_ENABLED=0 \
+		go test -v -i -c -ldflags "$(LDFLAGS)" $(GOPATHS)
 
 run: build
 	./$(MAIN)
@@ -34,8 +50,7 @@ lint:
 		gometalinter --vendor --errors --fast --deadline=60s -D gotype $(GOPATHS)
 
 test: build lint
-	cd $(GOSRCDIR) && \
-		go test -timeout 60s $(GOPATHS)
+	./$(MAIN).test -test.timeout 60s
 
 bench:
 	cd $(GOSRCDIR) && \

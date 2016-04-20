@@ -55,10 +55,7 @@ func MMapPal(filename string) (*Pal, error) {
 }
 
 func (p *Pal) Free() {
-	if !p.mmaped {
-		return
-	}
-	if p.data == nil {
+	if p == nil || !p.mmaped || p.data == nil {
 		return
 	}
 	syscall.Munmap(p.data)
