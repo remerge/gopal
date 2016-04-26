@@ -33,9 +33,6 @@ build: fmt
 	cd $(GOSRCDIR) && \
 		CGO_ENABLED=0 \
 		go build -v -i -ldflags "$(LDFLAGS)" $(MAINGO)
-	cd $(GOSRCDIR) && \
-		CGO_ENABLED=0 \
-		go test -v -i -c -ldflags "$(LDFLAGS)" $(GOPATHS)
 
 run: build
 	./$(MAIN)
@@ -49,8 +46,9 @@ lint:
 	cd $(GOSRCDIR) && \
 		gometalinter --vendor --errors --fast --deadline=60s -D gotype $(GOPATHS)
 
-test: build lint
-	./$(MAIN).test -test.timeout 60s
+test: lint
+	cd $(GOSRCDIR) && \
+		go test -timeout 60s -v $(GOPATHS)
 
 bench:
 	cd $(GOSRCDIR) && \
