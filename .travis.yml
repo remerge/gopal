@@ -9,6 +9,16 @@ install:
 - make dep
 script:
 - make test
+
+after_success:
+  - make build
 branches:
   only:
     - "master"
+addons:
+  artifacts:
+    paths: ./gopal
+    debug: true
+    s3_region: eu-west-1
+    s3_bucket: remerge-artifacts
+    target_paths: $TRAVIS_REPO_SLUG/$TRAVIS_BRANCH
