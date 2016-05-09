@@ -67,6 +67,7 @@ func (p *Pal) From(b []byte) error {
 	if len(b) < int(unsafe.Sizeof(PalHeader{})) {
 		return fmt.Errorf("buffer seems to be too small len=%d", len(b))
 	}
+
 	h := &PalHeader{}
 	h.Read(b)
 	if !h.Valid() {
@@ -77,17 +78,25 @@ func (p *Pal) From(b []byte) error {
 
 	hm := h.HeadSize + h.MapSize
 	hmi := hm + h.IdxSize
+
+	if hm > hmi || hmi > uint64(len(b)-1) || h.HeadSize > hm {
+		return fmt.Errorf("header invalid h=%#v len(b)=%v", h, len(b))
+	}
+
 	p.idx = b[hm:hmi]
 	p.data = b[hmi : len(b)-1]
+
 	dec := gob.NewDecoder(bytes.NewBuffer(b[h.HeadSize:hm]))
 	err := dec.Decode(&p.fields)
 	if err != nil {
 		return err
 	}
+
 	chd, err := mph.Mmap(p.idx)
 	if err != nil {
 		return err
 	}
+
 	p.chd = chd
 	return nil
 }
