@@ -8,7 +8,7 @@ import (
 	"io"
 	"unsafe"
 
-	"github.com/alecthomas/mph"
+	"github.com/remerge/mph"
 )
 
 type Builder struct {

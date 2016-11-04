@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/alecthomas/mph"
+	"github.com/remerge/mph"
 )
 
 type Pal struct {
@@ -122,6 +122,15 @@ func (r *Row) Get(field string) string {
 
 func (p *Pal) Get(id string) *Row {
 	b := p.chd.Get([]byte(id))
+	if b == nil {
+		return nil
+	}
+	offset := int(binary.LittleEndian.Uint64(b))
+	return &Row{data: p.data[offset:], fields: p.fields}
+}
+
+func (p *Pal) GetRandom() *Row {
+	b := p.chd.GetRandomValue()
 	if b == nil {
 		return nil
 	}

@@ -42,6 +42,12 @@ func TestPal(t *testing.T) {
 			So(row.Get("id"), ShouldEqual, "123")
 			So(row.Get("name"), ShouldEqual, "test")
 			So(row.Get("value"), ShouldEqual, "somevalue")
+
+			// get random row
+			row = p.GetRandom()
+			So(row, ShouldNotBeNil)
+			So(row.Get("id"), ShouldBeIn, []string{"123", "xfz56", "00000"})
+
 		})
 
 		Convey("build pal and mmap", func() {
