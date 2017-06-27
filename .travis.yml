@@ -1,24 +1,25 @@
 sudo: false
 language: go
 go:
-- 1.6
+- 1.8.3
 cache:
   directories:
-    - vendor
+  - vendor
 install:
 - make dep
 script:
-- make test
-
+- make test clean
+before_install:
+- git config --global url.git@github.com:.insteadof https://github.com/
 after_success:
-  - make build
+- make build
 branches:
   only:
-    - "master"
+  - master
 addons:
   artifacts:
     paths: ./gopal
     debug: true
     s3_region: eu-west-1
     s3_bucket: remerge-artifacts
-    target_paths: $TRAVIS_REPO_SLUG/$TRAVIS_BRANCH
+    target_paths: "$TRAVIS_REPO_SLUG/$TRAVIS_BRANCH"

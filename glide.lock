@@ -1,5 +1,5 @@
 hash: f71e02629fc2150c79406b05ed4a8f2310325ddf05901513b9bdeded7841994e
-updated: 2016-11-04T17:35:32.647209801+01:00
+updated: 2017-06-27T19:05:33.702049884Z
 imports:
 - name: github.com/alecthomas/unsafeslice
   version: 763102eafe597ba6cc5c6e847006e3e9851c2786
@@ -7,18 +7,18 @@ imports:
   version: fd3217a8c1ccfe29b1a42f3091f6d61a642012f9
 testImports:
 - name: github.com/gopherjs/gopherjs
-  version: 50101461d59f26b13c876f57aab314ce55387671
+  version: dc374d32704510cb387457180ca9d5193978b555
   subpackages:
   - js
 - name: github.com/jtolds/gls
-  version: 8ddce2a84170772b95dd5d576c48d517b22cac63
+  version: 77f18212c9c7edc9bd6a33d383a7b545ce62f064
 - name: github.com/smartystreets/assertions
-  version: 2063fd1cc7c975db70502811a34b06ad034ccdf2
+  version: 4ea54c1f28ad3ae597e76607dea3871fa177e263
   subpackages:
   - internal/go-render/render
   - internal/oglematchers
 - name: github.com/smartystreets/goconvey
-  version: 5db88ed452e937f2fd557de6f4f1af7f2eabed0b
+  version: 9e8dc3f972df6c8fcc0375ef492c24d0bb204857
   subpackages:
   - convey
   - convey/gotest
