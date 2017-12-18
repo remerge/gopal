@@ -10,13 +10,13 @@ import (
 	pal "github.com/remerge/gopal"
 )
 
-func csv2pal(csvname, palname, _sep string) error {
+func csv2pal(csvname, palname, _sep string) (err error) {
 	rr := strings.NewReader(_sep)
 	sep, _, _ := rr.ReadRune()
 	f, err := os.Open(csvname)
 	defer f.Close()
 	if err != nil {
-		return err
+		return
 	}
 	r := csv.NewReader(f)
 
@@ -24,7 +24,8 @@ func csv2pal(csvname, palname, _sep string) error {
 	headerRead := false
 	var pb *pal.Builder
 	for {
-		record, err := r.Read()
+		var record []string
+		record, err = r.Read()
 		if err == io.EOF {
 			break
 		}
@@ -41,11 +42,11 @@ func csv2pal(csvname, palname, _sep string) error {
 	}
 	out, err := os.Create(palname)
 	if err != nil {
-		return err
+		return
 	}
 	defer out.Close()
-	pb.BuildTo(out)
-	return nil
+	err = pb.BuildTo(out)
+	return
 }
 
 func main() {
