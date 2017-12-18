@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/akaspin/chd"
+	"github.com/remerge/chd"
 	"github.com/remerge/mph"
 )
 

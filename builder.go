@@ -8,7 +8,7 @@ import (
 	"io"
 	"unsafe"
 
-	"github.com/akaspin/chd"
+	"github.com/remerge/chd"
 )
 
 type Builder struct {
