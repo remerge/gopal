@@ -3,6 +3,7 @@ package gopal
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -72,6 +73,24 @@ func TestPal(t *testing.T) {
 			p.Free()
 			os.Remove(fn)
 		})
+	})
+	Convey(`build`, t, func() {
+		for j := 0; j < 2048; j++ {
+			Convey(fmt.Sprintf("build_%d", j), func() {
+				b1 := NewBuilder([]string{"id", "value"})
+				for i := 0; i < j; i++ {
+					b1.Add(strconv.Itoa(i), []string{
+						strconv.Itoa(i),
+						strconv.Itoa(i),
+					})
+				}
+				var buf bytes.Buffer
+
+				err := b1.BuildTo(&buf)
+				So(err, ShouldBeNil)
+
+			})
+		}
 	})
 }
 

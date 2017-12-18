@@ -68,20 +68,33 @@ func (b *Builder) Add(id string, values []string) {
 	b.pos = pos
 }
 
-func (b *Builder) BuildTo(w io.Writer) {
+func (b *Builder) BuildTo(w io.Writer) (err error) {
 	h := &PalHeader{Magic: V2Magic, HeadSize: uint64(unsafe.Sizeof(PalHeader{}))}
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
-	enc.Encode(b.fields)
+	if err = enc.Encode(b.fields); err != nil {
+		return
+	}
 	h.MapSize = uint64(buf.Len())
 	cdhb, err := b.cdh.Build()
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
-	cdhb.WriteTo(&buf)
+	if _, err = cdhb.WriteTo(&buf); err != nil {
+		return
+	}
 	h.IdxSize = uint64(buf.Len()) - h.MapSize
-	h.WriteTo(w)
-	buf.WriteTo(w)
-	b.buf.WriteTo(w)
+	if _, err = h.WriteTo(w); err != nil {
+		return
+	}
+	if _, err = buf.WriteTo(w); err != nil {
+		return
+	}
+	if _, err = b.buf.WriteTo(w); err != nil {
+		return
+	}
+
+	return
 }
 
