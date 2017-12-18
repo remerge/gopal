@@ -1,6 +1,8 @@
-hash: f71e02629fc2150c79406b05ed4a8f2310325ddf05901513b9bdeded7841994e
-updated: 2017-12-06T14:53:01.676324793+01:00
+hash: cf6b90153344c1192c4280dcdb929c7a96d8db65eab9cb9334a271419e5a60b4
+updated: 2017-12-18T11:11:14.564664+01:00
 imports:
+- name: github.com/akaspin/chd
+  version: d2e0590f318991094daf7f9b29ab851cbe8e2667
 - name: github.com/alecthomas/unsafeslice
   version: 763102eafe597ba6cc5c6e847006e3e9851c2786
 - name: github.com/remerge/mph
