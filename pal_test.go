@@ -75,8 +75,8 @@ func TestPal(t *testing.T) {
 		})
 	})
 	Convey(`build`, t, func() {
-		for j := 0; j < 2048; j++ {
-			Convey(fmt.Sprintf("build_%d", j), func() {
+		for j := 0; j < 1024; j++ {
+			Convey(fmt.Sprintf("%d", j), func() {
 				b1 := NewBuilder([]string{"id", "value"})
 				for i := 0; i < j; i++ {
 					b1.Add(strconv.Itoa(i), []string{
@@ -88,9 +88,24 @@ func TestPal(t *testing.T) {
 
 				err := b1.BuildTo(&buf)
 				So(err, ShouldBeNil)
-
 			})
 		}
+	})
+	Convey("mmap", t, func() {
+		Convey("v1", func() {
+			p, err := MMapPal("testdata/v1.pal")
+			So(err, ShouldBeNil)
+			row := p.Get("2")
+			So(row.Get("val2"), ShouldEqual, "2-2")
+			p.Free()
+		})
+		Convey("v2", func() {
+			p, err := MMapPal("testdata/v2.pal")
+			So(err, ShouldBeNil)
+			row := p.Get("2")
+			So(row.Get("val2"), ShouldEqual, "2-2")
+			p.Free()
+		})
 	})
 }
 
