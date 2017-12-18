@@ -73,7 +73,7 @@ dep:
 	go get -u github.com/Masterminds/glide
 	go get -u github.com/alecthomas/gometalinter
 	gometalinter --install --update
-	cd $(GOSRCDIR) && glide install
+	cd $(GOSRCDIR) && glide install --strip-vendor
 
 init:
 	cd $(GOSRCDIR) && \
@@ -81,7 +81,7 @@ init:
 
 up:
 	cd $(GOSRCDIR) && \
-		glide update
+		glide update --strip-vendor
 
 gen:
 	cd $(GOSRCDIR) && \
