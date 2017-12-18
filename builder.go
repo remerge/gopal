@@ -8,11 +8,11 @@ import (
 	"io"
 	"unsafe"
 
-	"github.com/remerge/mph"
+	"github.com/akaspin/chd"
 )
 
 type Builder struct {
-	cdh             *mph.CHDBuilder
+	cdh             *chd.Builder
 	numFields       int
 	emptyHeaderSize int
 	buf             bytes.Buffer
@@ -30,7 +30,7 @@ func NewBuilder(fields []string) *Builder {
 
 	emptyHeaderSize := numFields * 4
 	return &Builder{
-		cdh:             mph.Builder(),
+		cdh:             chd.NewBuilder(nil),
 		numFields:       numFields,
 		fields:          m,
 		emptyHeaderSize: emptyHeaderSize,
@@ -69,7 +69,7 @@ func (b *Builder) Add(id string, values []string) {
 }
 
 func (b *Builder) BuildTo(w io.Writer) {
-	h := &PalHeader{Magic: 0x19820304, HeadSize: uint64(unsafe.Sizeof(PalHeader{}))}
+	h := &PalHeader{Magic: V2Magic, HeadSize: uint64(unsafe.Sizeof(PalHeader{}))}
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	enc.Encode(b.fields)
@@ -78,7 +78,7 @@ func (b *Builder) BuildTo(w io.Writer) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	cdhb.Write(&buf)
+	cdhb.WriteTo(&buf)
 	h.IdxSize = uint64(buf.Len()) - h.MapSize
 	h.WriteTo(w)
 	buf.WriteTo(w)

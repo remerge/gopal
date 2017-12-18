@@ -1,6 +1,7 @@
 package gopal
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/akaspin/chd"
@@ -22,12 +23,14 @@ type Offsets interface {
 	GetRandomValue() []byte
 }
 
-func GetOffsets(magic uint64) (o Offsets) {
+func GetOffsets(magic uint64) (o Offsets, err error) {
 	switch magic {
 	case V1Magic:
 		o = &v1offsets{}
 	case V2Magic:
 		o = chd.NewMap()
+	default:
+		err = fmt.Errorf(`invalid magic`)
 	}
 	return
 }
