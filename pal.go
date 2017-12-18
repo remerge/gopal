@@ -70,8 +70,8 @@ func (p *Pal) From(b []byte) error {
 
 	h := &PalHeader{}
 	h.Read(b)
-	if !h.Valid() {
-		return fmt.Errorf("header invalid. len=%d header_signatur=%x wanted=%x", len(b), h.Magic, 0x19820304)
+	if err := h.Validate(); err != nil {
+		return fmt.Errorf("header invalid (len=%d): %v", len(b), err)
 	}
 
 	// TODO  - checksum the file or at least check if the size matches

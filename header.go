@@ -3,6 +3,7 @@ package gopal
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -22,7 +23,12 @@ func (h *PalHeader) WriteTo(w io.Writer) (int64, error) {
 	return 0, binary.Write(w, binary.LittleEndian, h)
 }
 
-func (h *PalHeader) Valid() bool {
-	return h.Magic == 0x19820304
+func (h *PalHeader) Validate() (err error) {
+	switch h.Magic {
+	case V1Magic, V2Magic:
+	default:
+		err = fmt.Errorf(`invalid magic %x (valid: %x, %x)`, h.Magic, V1Magic, V2Magic)
+	}
+	return
 }
 
