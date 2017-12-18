@@ -49,6 +49,9 @@ func TestPal(t *testing.T) {
 			So(row, ShouldNotBeNil)
 			So(row.Get("id"), ShouldBeIn, []string{"123", "xfz56", "00000"})
 
+			// Get non-existent
+			So(p.Get("aaaaaa"), ShouldBeNil)
+
 		})
 
 		Convey("build pal and mmap", func() {
@@ -97,6 +100,7 @@ func TestPal(t *testing.T) {
 			So(err, ShouldBeNil)
 			row := p.Get("2")
 			So(row.Get("val2"), ShouldEqual, "2-2")
+			So(p.Get("aaaaaa"), ShouldBeNil)
 			p.Free()
 		})
 		Convey("v2", func() {
@@ -104,6 +108,7 @@ func TestPal(t *testing.T) {
 			So(err, ShouldBeNil)
 			row := p.Get("2")
 			So(row.Get("val2"), ShouldEqual, "2-2")
+			So(p.Get("aaaaaa"), ShouldBeNil)
 			p.Free()
 		})
 	})
