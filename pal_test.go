@@ -3,6 +3,7 @@ package gopal
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -48,6 +49,9 @@ func TestPal(t *testing.T) {
 			So(row, ShouldNotBeNil)
 			So(row.Get("id"), ShouldBeIn, []string{"123", "xfz56", "00000"})
 
+			// Get non-existent
+			So(p.Get("aaaaaa"), ShouldBeNil)
+
 		})
 
 		Convey("build pal and mmap", func() {
@@ -71,6 +75,41 @@ func TestPal(t *testing.T) {
 
 			p.Free()
 			os.Remove(fn)
+		})
+	})
+	Convey(`build`, t, func() {
+		for j := 0; j < 1024; j++ {
+			Convey(fmt.Sprintf("%d", j), func() {
+				b1 := NewBuilder([]string{"id", "value"})
+				for i := 0; i < j; i++ {
+					b1.Add(strconv.Itoa(i), []string{
+						strconv.Itoa(i),
+						strconv.Itoa(i),
+					})
+				}
+				var buf bytes.Buffer
+
+				err := b1.BuildTo(&buf)
+				So(err, ShouldBeNil)
+			})
+		}
+	})
+	Convey("mmap", t, func() {
+		Convey("v1", func() {
+			p, err := MMapPal("testdata/v1.pal")
+			So(err, ShouldBeNil)
+			row := p.Get("2")
+			So(row.Get("val2"), ShouldEqual, "2-2")
+			So(p.Get("aaaaaa"), ShouldBeNil)
+			p.Free()
+		})
+		Convey("v2", func() {
+			p, err := MMapPal("testdata/v2.pal")
+			So(err, ShouldBeNil)
+			row := p.Get("2")
+			So(row.Get("val2"), ShouldEqual, "2-2")
+			So(p.Get("aaaaaa"), ShouldBeNil)
+			p.Free()
 		})
 	})
 }

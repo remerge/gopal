@@ -9,8 +9,6 @@ install:
 - make dep
 script:
 - make test clean
-before_install:
-- git config --global url.git@github.com:.insteadof https://github.com/
 after_success:
 - make build
 branches:

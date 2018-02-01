@@ -8,11 +8,11 @@ import (
 	"io"
 	"unsafe"
 
-	"github.com/remerge/mph"
+	"github.com/remerge/chd"
 )
 
 type Builder struct {
-	cdh             *mph.CHDBuilder
+	cdh             *chd.Builder
 	numFields       int
 	emptyHeaderSize int
 	buf             bytes.Buffer
@@ -30,7 +30,7 @@ func NewBuilder(fields []string) *Builder {
 
 	emptyHeaderSize := numFields * 4
 	return &Builder{
-		cdh:             mph.Builder(),
+		cdh:             chd.NewBuilder(nil),
 		numFields:       numFields,
 		fields:          m,
 		emptyHeaderSize: emptyHeaderSize,
@@ -68,39 +68,33 @@ func (b *Builder) Add(id string, values []string) {
 	b.pos = pos
 }
 
-func (b *Builder) BuildTo(w io.Writer) {
-	h := &PalHeader{Magic: 0x19820304, HeadSize: uint64(unsafe.Sizeof(PalHeader{}))}
+func (b *Builder) BuildTo(w io.Writer) (err error) {
+	h := &PalHeader{Magic: V2Magic, HeadSize: uint64(unsafe.Sizeof(PalHeader{}))}
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
-	enc.Encode(b.fields)
+	if err = enc.Encode(b.fields); err != nil {
+		return
+	}
 	h.MapSize = uint64(buf.Len())
 	cdhb, err := b.cdh.Build()
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
-	cdhb.Write(&buf)
+	if _, err = cdhb.WriteTo(&buf); err != nil {
+		return
+	}
 	h.IdxSize = uint64(buf.Len()) - h.MapSize
-	h.WriteTo(w)
-	buf.WriteTo(w)
-	b.buf.WriteTo(w)
+	if _, err = h.WriteTo(w); err != nil {
+		return
+	}
+	if _, err = buf.WriteTo(w); err != nil {
+		return
+	}
+	if _, err = b.buf.WriteTo(w); err != nil {
+		return
+	}
+
+	return
 }
 
-type PalHeader struct {
-	// TODO add a checksum
-	Magic    uint64
-	HeadSize uint64
-	MapSize  uint64
-	IdxSize  uint64
-}
-
-func (h *PalHeader) Read(b []byte) error {
-	return binary.Read(bytes.NewBuffer(b), binary.LittleEndian, h)
-}
-
-func (h *PalHeader) WriteTo(w io.Writer) (int64, error) {
-	return 0, binary.Write(w, binary.LittleEndian, h)
-}
-
-func (h *PalHeader) Valid() bool {
-	return h.Magic == 0x19820304
-}

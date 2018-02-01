@@ -10,16 +10,14 @@ import (
 	"runtime"
 	"syscall"
 	"unsafe"
-
-	"github.com/remerge/mph"
 )
 
 type Pal struct {
-	fields map[string]int
-	idx    []byte
-	data   []byte
-	chd    *mph.CHD
-	mmaped bool
+	fields  map[string]int
+	idx     []byte
+	data    []byte
+	offsets Offsets
+	mmaped  bool
 }
 
 func MMapPal(filename string) (*Pal, error) {
@@ -64,14 +62,16 @@ func (p *Pal) Free() {
 }
 
 func (p *Pal) From(b []byte) error {
+	var err error
+
 	if len(b) < int(unsafe.Sizeof(PalHeader{})) {
 		return fmt.Errorf("buffer seems to be too small len=%d", len(b))
 	}
 
 	h := &PalHeader{}
 	h.Read(b)
-	if !h.Valid() {
-		return fmt.Errorf("header invalid. len=%d header_signatur=%x wanted=%x", len(b), h.Magic, 0x19820304)
+	if err = h.Validate(); err != nil {
+		return fmt.Errorf("header invalid (len=%d): %v", len(b), err)
 	}
 
 	// TODO  - checksum the file or at least check if the size matches
@@ -87,17 +87,17 @@ func (p *Pal) From(b []byte) error {
 	p.data = b[hmi : len(b)-1]
 
 	dec := gob.NewDecoder(bytes.NewBuffer(b[h.HeadSize:hm]))
-	err := dec.Decode(&p.fields)
+	err = dec.Decode(&p.fields)
 	if err != nil {
 		return err
 	}
 
-	chd, err := mph.Mmap(p.idx)
-	if err != nil {
+	if p.offsets, err = GetOffsets(h.Magic); err != nil {
 		return err
 	}
-
-	p.chd = chd
+	if _, err = p.offsets.Read(p.idx); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -121,7 +121,7 @@ func (r *Row) Get(field string) string {
 }
 
 func (p *Pal) Get(id string) *Row {
-	b := p.chd.Get([]byte(id))
+	b := p.offsets.Get([]byte(id))
 	if b == nil {
 		return nil
 	}
@@ -130,7 +130,7 @@ func (p *Pal) Get(id string) *Row {
 }
 
 func (p *Pal) GetRandom() *Row {
-	b := p.chd.GetRandomValue()
+	b := p.offsets.GetRandomValue()
 	if b == nil {
 		return nil
 	}

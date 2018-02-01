@@ -1,8 +1,10 @@
-hash: f71e02629fc2150c79406b05ed4a8f2310325ddf05901513b9bdeded7841994e
-updated: 2017-12-06T14:53:01.676324793+01:00
+hash: 3cc4936e9d1356bdcac02f9f328d18e3bc4e301ebe751bc016439a4f885a17d9
+updated: 2017-12-18T15:40:55.211794+01:00
 imports:
 - name: github.com/alecthomas/unsafeslice
   version: 763102eafe597ba6cc5c6e847006e3e9851c2786
+- name: github.com/remerge/chd
+  version: 7267bc1765fd9ce87258fef35137caf0b24b7e68
 - name: github.com/remerge/mph
   version: fd3217a8c1ccfe29b1a42f3091f6d61a642012f9
 testImports:
