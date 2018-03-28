@@ -1,5 +1,9 @@
 *.test
 .args*
+pal
 gopal
 cache/
 vendor/
+.vscode/
+*.pal
+*.csv
