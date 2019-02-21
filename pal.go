@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -118,6 +119,20 @@ func (r *Row) Get(field string) string {
 		return string(r.data[start:end])
 	}
 	return ""
+}
+
+func (r *Row) String() string {
+	var s []string
+	headerSize := len(r.fields) * 4
+	for field, fieldNum := range r.fields {
+		start := headerSize
+		if fieldNum > 0 {
+			start = headerSize + int(binary.LittleEndian.Uint32(r.data[(fieldNum-1)*4:4+(fieldNum-1)*4]))
+		}
+		end := headerSize + int(binary.LittleEndian.Uint32(r.data[fieldNum*4:4+fieldNum*4]))
+		s = append(s, fmt.Sprintf("%s=%s", field, string(r.data[start:end])))
+	}
+	return fmt.Sprintf("Row(%s)", strings.Join(s, ","))
 }
 
 func (p *Pal) Get(id string) *Row {

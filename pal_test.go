@@ -117,6 +117,17 @@ func TestPal(t *testing.T) {
 		p.Free()
 		os.Remove(fn)
 	})
+
+	t.Run("string", func(t *testing.T) {
+		p, err := MMapPal("testdata/v2.pal")
+		assert.Nil(t, err)
+		row := p.Get("0")
+		for _, value := range []string{"val1=0-1", "val2=0-2", "val3=0-3", "id=0"} {
+			assert.Contains(t, row.String(), value)
+		}
+
+		p.Free()
+	})
 }
 
 func BenchmarkPalGen(b *testing.B) {
