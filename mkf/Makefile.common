@@ -1,0 +1,143 @@
+
+PROJECT ?= $(notdir $(patsubst %/,%,$(CURDIR)))
+PACKAGE ?= github.com/remerge/$(PROJECT)
+MKF_PREFIX ?= mkf
+
+# all go sources in build tree excluding vendor
+GO_SOURCES = $(shell find . -type f \( -iname '*.go' \) -not \( -path "./vendor/*" -path ".*" \))
+
+export GO111MODULE = on
+export CGO_ENABLED = 0
+# do not use automatic targets
+.SUFFIXES:
+
+.PHONY: clean gen
+
+release:
+	git push origin master:production
+
+deploy:
+	/bin/bash -c 'cd ../chef.new && knife ssh roles:$(PROJECT) sudo chef-client'
+	/bin/bash -c 'cd ../chef && knife sudo -Q roles:$(PROJECT) chef-client'
+
+# if included update the makefile subtree to the latest version
+check-makefile-remote:
+	git remote | grep makefile || git remote add makefile https://github.com/remerge/go-makefile.git
+
+update-makefile: check-makefile-remote
+	git subtree pull --squash --prefix=$(MKF_PREFIX) makefile master
+
+upstream-makefile: check-makefile-remote
+	git subtree push --prefix=$(MKF_PREFIX) makefile master
+
+
+###
+### Code maintenance
+###
+
+GENERATE_SOURCES ?=
+
+gen: $(GENERATE_SOURCES)
+	go generate ./...
+	$(MAKE) fmt
+
+fmt: $(GO_SOURCES)	## format go sources
+	gofmt -w -s -l $^
+
+
+###
+### dependencies
+###
+
+mod-tidy:	## tidy go.mod
+	go mod tidy
+.NOTPARALLEL: mod-tidy
+.PHONY: mod-tidy
+
+###
+### Test
+###
+
+TEST_TIMEOUT ?= 60s
+TESTS ?= .
+TEST_TAGS ?=
+
+test: $(GO_SOURCES) go.mod	## regular tests
+	go test -tags="$(TEST_TAGS)" -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
+
+race: $(GO_SOURCES) go.mod	## race tests
+	go test -tags="$(TEST_TAGS)" -race -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
+
+bench: $(GO_SOURCES) go.mod	## benchmarks
+	go test -tags="$(TEST_TAGS)" -run=^$ -bench=$(TESTS) -benchmem -cpu 32 ./...
+
+test-nocache: $(GO_SOURCES) go.mod
+	go test -tags="$(TEST_TAGS)" -count=1 -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
+
+race-nocache: $(GO_SOURCES) go.mod
+	go test -tags="$(TEST_TAGS)" -race -count=1 -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
+
+
+###
+### Watch
+###
+
+watch: .install-reflex
+	reflex -r '\.go$$' -s -- sh -c 'clear && go test -v -run=Test$(T)'
+
+### *lint* target will run go fmt check, vet and revive. Revive
+### config can be overriden by put "revive.toml" to build tree root.
+### Use "REVIVELINTER_EXCLUDES" to exclude files from revive.
+### Use "VET_FLAGS" to define vet linter flags.
+###
+
+lint: .lint-mod-tidy .lint-fmt .lint-vet .lint-revive .lint-fix ## run all linters
+
+.lint-fmt: $(GO_SOURCES) ## compare gofmt output
+	@DIFF=`gofmt -s -d $^` && echo "$$DIFF" && test -z "$$DIFF"
+
+.lint-vet: $(GO_SOURCES) go.mod ## run vet
+	go vet $(VET_FLAGS) ./...
+.NOTPARALLEL: .lint-vet
+
+REVIVE_CONFIG = $(or $(wildcard revive.toml),$(MKF_PREFIX)/revive.toml)
+.lint-revive: $(GO_SOURCES) $(REVIVE_CONFIG) .install-revive	## run revive linter
+	revive -config $(REVIVE_CONFIG) -formatter friendly -exclude ./vendor/... $(REVIVELINTER_EXCLUDES) ./...
+
+.lint-fix: $(GO_SOURCES) ## run fix
+	@DIFF=`go tool fix -diff $^` && echo "$$DIFF" && test -z "$$DIFF"
+
+.lint-mod-tidy:	## check go mod tidy is applied
+	rm -f go.sum /tmp/$(PROJECT).go.mod.tidy.bak /tmp/$(PROJECT).go.mod.tidy
+	cp go.mod /tmp/$(PROJECT).go.mod.tidy.bak
+	go mod tidy
+	mv go.mod /tmp/$(PROJECT).go.mod.tidy
+	mv /tmp/$(PROJECT).go.mod.tidy.bak go.mod
+	diff go.mod /tmp/$(PROJECT).go.mod.tidy
+.NOTPARALLEL: .lint-mod-tidy
+.PHONY: .lint-mod-tidy
+
+lint-mod-outdated:  ## check outdated deps
+	rm -f go.sum /tmp/$(PROJECT).go.mod.bak /tmp/$(PROJECT).go.mod.up
+	cp go.mod /tmp/$(PROJECT).go.mod.bak
+	go get -u
+	go mod tidy
+	mv go.mod /tmp/$(PROJECT).go.mod.up
+	mv /tmp/$(PROJECT).go.mod.bak go.mod
+	diff go.mod /tmp/$(PROJECT).go.mod.up
+.NOTPARALLEL: .lint-mod-tidy
+.PHONY: .lint-mod-tidy
+
+###
+### Install
+###
+
+# currently there is no good solution for Go 1.11 to manage global vs local tools
+# we just use the "easy" way for now. People have to update this manually if they need a newer version
+# see https://github.com/golang/go/issues/24250 , https://github.com/golang/go/issues/25922 and https://github.com/golang/go/issues/27653
+# another option is https://github.com/twitchtv/retool but that is another dependancy that makes things more complex
+.install-revive:
+	which revive >/dev/null 2>&1 || GO111MODULE=off go get -u github.com/remerge/revive
+
+.install-reflex:
+	which rexlex >/dev/null 2>&1 || GO111MODULE=off go get -u github.com/cespare/reflex

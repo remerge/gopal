@@ -1,0 +1,41 @@
+sudo: false
+language: go
+
+go:
+- "1.11"
+
+cache:
+  directories:
+  - $GOPATH/pkg/mod
+  - $GOPATH/bin
+  - $HOME/.cache/go-build
+
+branches:
+  only:
+    - master
+    - production
+
+before_install:
+- 'git config --global url.git@github.com:.insteadof https://github.com/'
+
+script:
+- make lint test
+
+after_success:
+- make -j2 .build/${TRAVIS_REPO_SLUG##*/}.linux.amd64
+- cp .build/${TRAVIS_REPO_SLUG##*/}.linux.amd64 .build/${TRAVIS_REPO_SLUG##*/}
+
+addons:
+  artifacts:
+    working_dir: ".build"
+    paths:
+      - "${TRAVIS_REPO_SLUG##*/}"
+      - "${TRAVIS_REPO_SLUG##*/}.linux.amd64"
+    debug: true
+    s3_region: eu-west-1
+    s3_bucket: remerge-artifacts
+    target_paths: "$TRAVIS_REPO_SLUG/$TRAVIS_BRANCH"
+
+notifications:
+  slack:
+    secure: JTOQ25Dh3Xoh3p9hbXsC+hhMP6XmYftjZjErrweX9fcRjJ7/vOmQ9md3Kg0ekweeiEh7ALJLLTnaV8rLO0AIhjYntAEMvRWprWF/cQGBeig1CoJgkoWGPn4dKULw1ONcw3LLhUxJeL6NImEuZA4d/lMeJx28jIdtU3s5jLJKkJI=
