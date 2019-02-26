@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -118,6 +119,14 @@ func (r *Row) Get(field string) string {
 		return string(r.data[start:end])
 	}
 	return ""
+}
+
+func (r *Row) String() string {
+	var s []string
+	for field := range r.fields {
+		s = append(s, fmt.Sprintf("%s=%s", field, r.Get(field)))
+	}
+	return fmt.Sprintf("Row(%s)", strings.Join(s, ","))
 }
 
 func (p *Pal) Get(id string) *Row {

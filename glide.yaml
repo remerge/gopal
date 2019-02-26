@@ -1,4 +1,0 @@
-package: github.com/remerge/gopal
-import:
-- package: github.com/remerge/mph
-- package: github.com/remerge/chd
