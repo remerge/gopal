@@ -31,4 +31,3 @@ func (h *PalHeader) Validate() (err error) {
 	}
 	return
 }
-
