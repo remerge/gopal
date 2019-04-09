@@ -17,7 +17,7 @@ type Pal struct {
 	idx     []byte
 	data    []byte
 	offsets Offsets
-	mmaped  bool
+	mmap    []byte
 }
 
 func MMapPal(filename string) (*Pal, error) {
@@ -45,7 +45,7 @@ func MMapPal(filename string) (*Pal, error) {
 		syscall.Munmap(mmap)
 		return nil, err
 	}
-	p.mmaped = true
+	p.mmap = mmap
 	runtime.SetFinalizer(p, func(p *Pal) {
 		p.Free()
 	})
@@ -53,12 +53,12 @@ func MMapPal(filename string) (*Pal, error) {
 }
 
 func (p *Pal) Free() {
-	if p == nil || !p.mmaped || p.data == nil {
+	if p == nil || p.mmap == nil {
 		return
 	}
-	syscall.Munmap(p.data)
+	syscall.Munmap(p.mmap)
 	p.data = nil
-	p.mmaped = false
+	p.mmap = nil
 }
 
 func (p *Pal) From(b []byte) error {
