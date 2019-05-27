@@ -4,6 +4,7 @@ pal
 gopal
 cache/
 vendor/
+.build/
 .vscode/
 *.pal
 *.csv
