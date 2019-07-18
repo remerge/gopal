@@ -11,6 +11,8 @@ import (
 	"strings"
 	"syscall"
 	"unsafe"
+
+	"github.com/remerge/chd"
 )
 
 type Pal struct {
@@ -19,6 +21,14 @@ type Pal struct {
 	data    []byte
 	offsets Offsets
 	mmap    []byte
+}
+
+func (p *Pal) HACK_Fields() map[string]int {
+	return p.fields
+}
+
+func (p *Pal) HACK_Map() *chd.Map {
+	return p.offsets.(*chd.Map)
 }
 
 func MMapPal(filename string) (*Pal, error) {
