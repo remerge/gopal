@@ -118,6 +118,14 @@ func TestPal(t *testing.T) {
 		os.Remove(fn)
 	})
 
+	t.Run("pal with empty value", func(t *testing.T) {
+		p, err := MMapPal("testdata/empty_value_small.pal")
+		assert.Nil(t, err)
+		ret := p.Get("")
+		assert.Nil(t, ret)
+		p.Free()
+	})
+
 	t.Run("string", func(t *testing.T) {
 		p, err := MMapPal("testdata/v2.pal")
 		assert.Nil(t, err)

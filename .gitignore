@@ -9,3 +9,5 @@ vendor/
 *.csv
 
 go\.sum
+
+.build/
