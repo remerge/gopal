@@ -16,13 +16,8 @@ func probePal(file string) error {
 	fmt.Printf("Pal %v opened \n", file)
 	fmt.Printf("Fields are %v \n", fields)
 
-	for i := 0; i < 100000; i++ {
-		for _, f := range fields {
-			field := p.GetRandom().Get(f)
-			fmt.Println(field)
-		}
-		p.GetRandom().Get("xz")
-	}
+	d := p.Get("")
+	fmt.Println(d)
 	return nil
 }
 
