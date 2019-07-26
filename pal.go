@@ -108,6 +108,18 @@ type Row struct {
 	fields map[string]int
 }
 
+func (p *Pal) Fields() []string {
+	return p.GetRandom().Fields()
+}
+
+func (r *Row) Fields() []string {
+	keys := make([]string, 0, len(r.fields))
+	for k := range r.fields {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
 func (r *Row) Get(field string) string {
 	if fieldNum, ok := r.fields[field]; ok {
 		headerSize := len(r.fields) * 4

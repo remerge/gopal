@@ -1,59 +1,35 @@
 package main
 
 import (
-	"encoding/csv"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 
 	pal "github.com/remerge/gopal"
 )
 
-func csv2pal(csvname, palname, _sep string) (err error) {
-	rr := strings.NewReader(_sep)
-	sep, _, _ := rr.ReadRune()
-	f, err := os.Open(csvname)
-	defer f.Close()
+func probePal(file string) error {
+	p, err := pal.MMapPal(file)
 	if err != nil {
-		return
+		return err
 	}
-	r := csv.NewReader(f)
+	fields := p.Fields()
+	fmt.Printf("Pal %v opened \n", file)
+	fmt.Printf("Fields are %v \n", fields)
 
-	r.Comma = sep
-	headerRead := false
-	var pb *pal.Builder
-	for {
-		var record []string
-		record, err = r.Read()
-		if err == io.EOF {
-			break
+	for i := 0; i < 100000; i++ {
+		for _, f := range fields {
+			field := p.GetRandom().Get(f)
+			fmt.Println(field)
 		}
-		if err != nil {
-			fmt.Println("err", err)
-			continue
-		}
-		if !headerRead {
-			headerRead = true
-			pb = pal.NewBuilder(record)
-		} else {
-			pb.AddRow(record)
-		}
+		p.GetRandom().Get("xz")
 	}
-	out, err := os.Create(palname)
-	if err != nil {
-		return
-	}
-	defer out.Close()
-	err = pb.BuildTo(out)
-	return
+	return nil
 }
 
 func main() {
-	csvfile := os.Args[1]
-	palfile := os.Args[2]
+	palFile := os.Args[1]
 
-	err := csv2pal(csvfile, palfile, ",")
+	err := probePal(palFile)
 	if err != nil {
 		fmt.Println(err)
 	}
