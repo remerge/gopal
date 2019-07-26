@@ -7,3 +7,5 @@ vendor/
 .vscode/
 *.pal
 *.csv
+
+go\.sum
