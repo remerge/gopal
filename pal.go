@@ -131,7 +131,7 @@ func (r *Row) String() string {
 
 func (p *Pal) Get(id string) *Row {
 	b := p.offsets.Get([]byte(id))
-	if b == nil || len(b) == 0 {
+	if len(b) == 0 {
 		return nil
 	}
 	offset := int(binary.LittleEndian.Uint64(b))
