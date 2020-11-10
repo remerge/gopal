@@ -1,5 +1,5 @@
-
-PROJECT ?= $(notdir $(patsubst %/,%,$(CURDIR)))
+# CircleCI checks out projects into ~/project, so use the repo name instead
+PROJECT ?= $(or $(CIRCLE_PROJECT_REPONAME), $(notdir $(patsubst %/,%,$(CURDIR))))
 PACKAGE ?= github.com/remerge/$(PROJECT)
 MKF_PREFIX ?= mkf
 
@@ -8,17 +8,45 @@ GO_SOURCES = $(shell find . -type f \( -iname '*.go' \) -not \( -path "./vendor/
 
 export GO111MODULE = on
 export CGO_ENABLED = 0
+export GOPRIVATE ?= github.com/remerge/*
+
 # do not use automatic targets
 .SUFFIXES:
 
 .PHONY: clean gen
 
-release:
-	git push origin master:production
 
-deploy:
-	/bin/bash -c 'cd ../chef.new && knife ssh roles:$(PROJECT) sudo chef-client'
-	/bin/bash -c 'cd ../chef && knife sudo -Q roles:$(PROJECT) chef-client'
+# External tools
+
+# Use as prerequisite. Requested tool will be installed automatically on demand.
+#
+# 	lint-shadow: $(TOOLS)/golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow $(GO_SOURCES)
+#		go vet -vettool=$< ./...
+#
+
+TOOLS ?= $(MKF_PREFIX)/.tools
+$(TOOLS)/%:
+	test -x "$@" || GO111MODULE=off GOBIN=$(shell pwd)/$(dir $@) go get -u $*
+
+
+# Code maintenance
+
+GENERATE_SOURCES ?=
+
+gen: $(GENERATE_SOURCES)
+	go generate ./...
+	$(MAKE) fmt
+
+fmt:: .fmt-gofmt .fmt-goimports
+
+GOFMT_EXCLUDES ?= %.pb.go %_gen.go %_easyjson.go
+GOFMT_SOURCES = $(filter-out $(GOFMT_EXCLUDES),$(GO_SOURCES))
+
+.fmt-gofmt: $(GOFMT_SOURCES)	## format go sources
+	gofmt -w -s -l $^
+	
+.fmt-goimports: $(TOOLS)/golang.org/x/tools/cmd/goimports $(GOFMT_SOURCES)	## group and correct imports
+	$< -w -l $(GOFMT_SOURCES)
 
 # if included update the makefile subtree to the latest version
 check-makefile-remote:
@@ -27,85 +55,73 @@ check-makefile-remote:
 update-makefile: check-makefile-remote
 	git subtree pull --squash --prefix=$(MKF_PREFIX) makefile master
 
-upstream-makefile: check-makefile-remote
-	git subtree push --prefix=$(MKF_PREFIX) makefile master
+clean::
+	rm -rf $(TOOLS)
 
-
-###
-### Code maintenance
-###
-
-GENERATE_SOURCES ?=
-
-gen: $(GENERATE_SOURCES)
-	go generate ./...
-	$(MAKE) fmt
-
-fmt: $(GO_SOURCES)	## format go sources
-	gofmt -w -s -l $^
-
-
-###
-### dependencies
-###
+# Dependencies cleanup
 
 mod-tidy:	## tidy go.mod
 	go mod tidy
 .NOTPARALLEL: mod-tidy
 .PHONY: mod-tidy
 
-###
-### Test
-###
 
-TEST_TIMEOUT ?= 60s
+# Testing
+
+TEST_TIMEOUT ?= 600s
 TESTS ?= .
 TEST_TAGS ?=
+TEST_ARGS ?=
 
 test: $(GO_SOURCES) go.mod	## regular tests
-	go test -tags="$(TEST_TAGS)" -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
+	go test $(TEST_ARGS) -tags="$(TEST_TAGS)" -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
 
 race: $(GO_SOURCES) go.mod	## race tests
-	go test -tags="$(TEST_TAGS)" -race -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
+	CGO_ENABLED=1 go test  $(TEST_ARGS) -tags="$(TEST_TAGS)" -race -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
 
 bench: $(GO_SOURCES) go.mod	## benchmarks
-	go test -tags="$(TEST_TAGS)" -run=^$ -bench=$(TESTS) -benchmem -cpu 32 ./...
+	go test  $(TEST_ARGS) -tags="$(TEST_TAGS)" -run=^$ -bench=$(TESTS) -benchmem -cpu 32 ./...
 
 test-nocache: $(GO_SOURCES) go.mod
-	go test -tags="$(TEST_TAGS)" -count=1 -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
+	go test  $(TEST_ARGS) -tags="$(TEST_TAGS)" -count=1 -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
 
 race-nocache: $(GO_SOURCES) go.mod
-	go test -tags="$(TEST_TAGS)" -race -count=1 -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
+	CGO_ENABLED=1 go test  $(TEST_ARGS) -tags="$(TEST_TAGS)" -race -count=1 -timeout=$(TEST_TIMEOUT) -run=$(TESTS) ./...
+
+escape: $(GO_SOURCES) go.mod ## builds with escape analysis active
+	go build -v -gcflags '-m -m -l -e' ./...
 
 
-###
-### Watch
-###
+watch: $(TOOLS)/github.com/cespare/reflex
+	$< -r '\.go$$' -s -- sh -c 'clear && go test -v -run=Test$(T)'
+.PHONY: watch
 
-watch: .install-reflex
-	reflex -r '\.go$$' -s -- sh -c 'clear && go test -v -run=Test$(T)'
+# Linting
 
-### *lint* target will run go fmt check, vet and revive. Revive
-### config can be overriden by put "revive.toml" to build tree root.
-### Use "REVIVELINTER_EXCLUDES" to exclude files from revive.
-### Use "VET_FLAGS" to define vet linter flags.
-###
+# *lint* target will run go fmt check, vet, goimports and revive. Revive
+# config can be overriden by putting "revive.toml" into the build tree root.
+# Use "REVIVELINTER_EXCLUDES" to exclude files from revive.
+# Use "GOFMT_EXCLUDES" to exclude files from gofmt and goimports.
+# Use "VET_FLAGS" to define vet linter flags.
 
-lint: .lint-mod-tidy .lint-fmt .lint-vet .lint-revive .lint-fix ## run all linters
+lint:: .lint-mod-tidy .lint-fmt .lint-goimports .lint-vet .lint-revive .lint-fix ## run all linters
 
-.lint-fmt: $(GO_SOURCES) ## compare gofmt output
-	@DIFF=`gofmt -s -d $^` && echo "$$DIFF" && test -z "$$DIFF"
+.lint-fmt: $(GOFMT_SOURCES) ## compare gofmt and goimports output
+	@DIFF=`gofmt -s -d $(GOFMT_SOURCES)` && test -z "$$DIFF" || echo "$$DIFF" && test -z "$$DIFF"
+
+.lint-goimports: $(TOOLS)/golang.org/x/tools/cmd/goimports $(GOFMT_SOURCES)
+	@DIFF=`$< -d $(GOFMT_SOURCES)` && test -z "$$DIFF" || echo "$$DIFF" && test -z "$$DIFF"
 
 .lint-vet: $(GO_SOURCES) go.mod ## run vet
 	go vet $(VET_FLAGS) ./...
 .NOTPARALLEL: .lint-vet
 
 REVIVE_CONFIG = $(or $(wildcard revive.toml),$(MKF_PREFIX)/revive.toml)
-.lint-revive: $(GO_SOURCES) $(REVIVE_CONFIG) .install-revive	## run revive linter
-	revive -config $(REVIVE_CONFIG) -formatter friendly -exclude ./vendor/... $(REVIVELINTER_EXCLUDES) ./...
+.lint-revive: $(TOOLS)/github.com/mgechev/revive $(GO_SOURCES) $(REVIVE_CONFIG)	## run revive linter
+	$< -config $(REVIVE_CONFIG) -formatter friendly -exclude ./vendor/... $(REVIVELINTER_EXCLUDES) ./...
 
 .lint-fix: $(GO_SOURCES) ## run fix
-	@DIFF=`go tool fix -diff $^` && echo "$$DIFF" && test -z "$$DIFF"
+	@DIFF=`go tool fix -diff $^` && test -z "$$DIFF" || echo "$$DIFF" && test -z "$$DIFF"
 
 .lint-mod-tidy:	## check go mod tidy is applied
 	rm -f go.sum /tmp/$(PROJECT).go.mod.tidy.bak /tmp/$(PROJECT).go.mod.tidy
@@ -127,17 +143,3 @@ lint-mod-outdated:  ## check outdated deps
 	diff go.mod /tmp/$(PROJECT).go.mod.up
 .NOTPARALLEL: .lint-mod-tidy
 .PHONY: .lint-mod-tidy
-
-###
-### Install
-###
-
-# currently there is no good solution for Go 1.11 to manage global vs local tools
-# we just use the "easy" way for now. People have to update this manually if they need a newer version
-# see https://github.com/golang/go/issues/24250 , https://github.com/golang/go/issues/25922 and https://github.com/golang/go/issues/27653
-# another option is https://github.com/twitchtv/retool but that is another dependancy that makes things more complex
-.install-revive:
-	which revive >/dev/null 2>&1 || GO111MODULE=off go get -u github.com/remerge/revive
-
-.install-reflex:
-	which rexlex >/dev/null 2>&1 || GO111MODULE=off go get -u github.com/cespare/reflex
