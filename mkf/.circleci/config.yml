@@ -1,0 +1,90 @@
+version: 2.1
+
+orbs:
+  aws-s3: circleci/aws-s3@1.0.0
+
+executors:
+  go:
+    docker:
+      - image: 855600992954.dkr.ecr.eu-central-1.amazonaws.com/remerge/circleci:go-1.11.9
+        aws_auth:
+          aws_access_key_id: $DOCKER_KEY
+          aws_secret_access_key: $DOCKER_SECRET
+
+jobs:
+  test-build:
+    parameters:
+      build_and_upload:
+        type: boolean
+        default: false
+    executor: go
+    steps:
+      # TODO: step only required you require access to private repositories
+      - add_ssh_keys:
+          fingerprints:
+            # TODO: exchange with fingerprint of added SSH key that has access to GitHub
+            - "f7:b4:dd:16:39:97:49:de:90:85:ab:37:fd:92:77:44"
+      - checkout
+      # TODO: step only required you require access to private repositories
+      - run:
+          name: Setup Git
+          command: ../setup-git.sh
+      # TODO: if you need specific setup steps for the projects, put them here:
+      # - run:
+      #     name: Setup service specific dependencies
+      #     command: .circleci/setup.sh
+      - restore_cache:
+          keys:
+            - modules-v1-{{ checksum "go.mod" }}
+            - modules-v1-
+      - run:
+          name: Lint
+          command: make lint
+      - run:
+          name: Test
+          command: make test-nocache
+      - run:
+          name: Test with race detector
+          command: make race-nocache
+      - when:
+          condition: << parameters.build_and_upload >>
+          steps:
+            - run:
+                name: Build
+                command: make dist
+            - aws-s3/copy:
+                from: ".build/"
+                to: "s3://remerge-artifacts/remerge/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}/"
+                arguments: "--recursive"
+      - save_cache:
+          key: modules-v1-{{ checksum "go.mod" }}
+          paths:
+            - /go/pkg/mod
+            - /home/circleci/.cache/go-build
+
+workflows:
+  version: 2
+  # TODO: delete either the "Go app" or "Go library" workflow
+  "Go app":
+    jobs:
+      - test-build:
+          context: go-default
+          build_and_upload: false
+          filters:
+            branches:
+              ignore:
+                - master
+                - production
+      - test-build:
+          context: go-default
+          build_and_upload: true
+          filters:
+            branches:
+              only:
+                - master
+                - production
+  "Go library":
+    jobs:
+      - test-build:
+          context: go-default
+          build_and_upload: false
