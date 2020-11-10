@@ -48,4 +48,3 @@ func (o *v1offsets) WriteTo(w io.Writer) (n int64, err error) {
 	err = o.CHD.Write(w)
 	return
 }
-
