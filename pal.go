@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -29,7 +28,7 @@ func MMapPal(filename string) (*Pal, error) {
 		return nil, err
 	}
 	if fi.IsDir() {
-		return nil, errors.New(fmt.Sprintf("%s is a directory, file needed", filename))
+		return nil, fmt.Errorf("%s is a directory, file needed", filename)
 	}
 
 	file, err := os.OpenFile(filename, os.O_RDWR, 0777)
