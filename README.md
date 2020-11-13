@@ -91,6 +91,14 @@ This target lints the source code using various tools: `go fmt`, `goimports`, th
 `lint-mod-outdated` checks all modules are up to date. It's disabled until 
 we migrate to upstream pq and sarama.
 
+## Buildsystem
+
+`lint-mkf` checks that `go-makefile` is up to date. Use `make update-makefile` 
+to update if `lint-mkf` target fails. Set `MKF_BRANCH` to test using a 
+different `go-makefile` branch. 
+
+If your repository is public and CI is unable to access `go-makefile`, remove 
+the `lint-mkf` step in the CI config.
 
 ## vet configuration
 

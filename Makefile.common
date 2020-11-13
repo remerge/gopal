@@ -1,7 +1,9 @@
 # CircleCI checks out projects into ~/project, so use the repo name instead
 PROJECT ?= $(or $(CIRCLE_PROJECT_REPONAME), $(notdir $(patsubst %/,%,$(CURDIR))))
 PACKAGE ?= github.com/remerge/$(PROJECT)
+
 MKF_PREFIX ?= mkf
+MKF_BRANCH ?= master
 
 # all go sources in build tree excluding vendor
 GO_SOURCES = $(shell find . -type f \( -iname '*.go' \) -not \( -path "./vendor/*" -path ".*" \))
@@ -50,10 +52,10 @@ GOFMT_SOURCES = $(filter-out $(GOFMT_EXCLUDES),$(GO_SOURCES))
 
 # if included update the makefile subtree to the latest version
 check-makefile-remote:
-	git remote | grep makefile || git remote add makefile https://github.com/remerge/go-makefile.git
+	git remote | grep makefile || git remote add makefile https://github.com/remerge/go-makefile.git && git fetch -a -p makefile
 
 update-makefile: check-makefile-remote
-	git subtree pull --squash --prefix=$(MKF_PREFIX) makefile master
+	git subtree pull --squash --prefix=$(MKF_PREFIX) makefile $(MKF_BRANCH)
 
 clean::
 	rm -rf $(TOOLS)
@@ -106,11 +108,15 @@ watch: $(TOOLS)/github.com/cespare/reflex
 
 lint:: .lint-mod-tidy .lint-fmt .lint-goimports .lint-vet .lint-revive .lint-fix ## run all linters
 
+lint-mkf: check-makefile-remote
+	@DIFF=`git diff --name-only --relative HEAD:$(MKF_PREFIX)/ makefile/$(MKF_BRANCH):./` && echo "$$DIFF" && test -z "$$DIFF"
+.PHONY: .lint-mkf
+
 .lint-fmt: $(GOFMT_SOURCES) ## compare gofmt and goimports output
-	@DIFF=`gofmt -s -d $(GOFMT_SOURCES)` && test -z "$$DIFF" || echo "$$DIFF" && test -z "$$DIFF"
+	@test -z "$(GOFMT_SOURCES)" || DIFF=`gofmt -s -d $(GOFMT_SOURCES)` && test -z "$$DIFF" || echo "$$DIFF" && test -z "$$DIFF"
 
 .lint-goimports: $(TOOLS)/golang.org/x/tools/cmd/goimports $(GOFMT_SOURCES)
-	@DIFF=`$< -d $(GOFMT_SOURCES)` && test -z "$$DIFF" || echo "$$DIFF" && test -z "$$DIFF"
+	@test -z "$(GOFMT_SOURCES)" || DIFF=`$< -d $(GOFMT_SOURCES)` && test -z "$$DIFF" || echo "$$DIFF" && test -z "$$DIFF"
 
 .lint-vet: $(GO_SOURCES) go.mod ## run vet
 	go vet $(VET_FLAGS) ./...
