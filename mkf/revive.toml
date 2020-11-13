@@ -43,5 +43,5 @@ warningCode = 1
 [rule.unused-parameter]
 [rule.var-declaration]
 [rule.var-naming]
-    arguments = [["ID", "URL", "HTML", "TTL", "JSON", "HTTP", "HTTPS"], []]
+    arguments = [["ID", "URL", "HTML", "TTL", "JSON", "HTTP", "HTTPS", "UUID"], []]
 [rule.waitgroup-by-value]

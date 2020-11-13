@@ -37,6 +37,10 @@ jobs:
           keys:
             - modules-v1-{{ checksum "go.mod" }}
             - modules-v1-
+      # Remove this step for public repositories
+      - run:
+          name: Check go-makefile
+          command: make lint-mkf
       - run:
           name: Lint
           command: make lint

@@ -19,6 +19,8 @@ before_install:
 - 'git config --global url.git@github.com:.insteadof https://github.com/'
 
 script:
+  # Remove this step for public repositories
+- make lint-mkf
 - make lint test
 
 after_success:
