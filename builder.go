@@ -58,7 +58,7 @@ func (b *Builder) Add(id string, values []string) {
 	offset := 0
 	for idx, v := range values {
 		// update the offset
-		n, _ := b.buf.Write([]byte(v))
+		n, _ = b.buf.Write([]byte(v))
 		pos += n
 		offset += n
 		// store the offset

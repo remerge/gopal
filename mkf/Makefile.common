@@ -106,7 +106,7 @@ watch: $(TOOLS)/github.com/cespare/reflex
 # Use "GOFMT_EXCLUDES" to exclude files from gofmt and goimports.
 # Use "VET_FLAGS" to define vet linter flags.
 
-lint:: .lint-mod-tidy .lint-fmt .lint-goimports .lint-vet .lint-revive .lint-fix ## run all linters
+lint:: .lint-mod-tidy .lint-fmt .lint-goimports .lint-vet .lint-shadow .lint-revive .lint-fix ## run all linters
 
 lint-mkf: check-makefile-remote
 	@DIFF=`git diff --name-only --relative HEAD:$(MKF_PREFIX)/ makefile/$(MKF_BRANCH):./` && echo "$$DIFF" && test -z "$$DIFF"
@@ -121,6 +121,10 @@ lint-mkf: check-makefile-remote
 .lint-vet: $(GO_SOURCES) go.mod ## run vet
 	go vet $(VET_FLAGS) ./...
 .NOTPARALLEL: .lint-vet
+
+.lint-shadow: $(TOOLS)/golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow $(GO_SOURCES) ## run shadow linter
+	go vet -vettool=$< ./...
+.NOTPARALLEL: .lint-shadow
 
 REVIVE_CONFIG = $(or $(wildcard revive.toml),$(MKF_PREFIX)/revive.toml)
 .lint-revive: $(TOOLS)/github.com/mgechev/revive $(GO_SOURCES) $(REVIVE_CONFIG)	## run revive linter
